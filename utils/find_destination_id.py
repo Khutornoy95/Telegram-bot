@@ -17,7 +17,5 @@ def destination_id(city):
             if elem['type'] == 'CITY' or elem['type'] == 'NEIGHBORHOOD':
                 possible_cities[elem['gaiaId']] = elem['regionNames']['fullName']
 
-    print(json.dumps(data, indent=4))
-    print(possible_cities)
     return possible_cities
 
