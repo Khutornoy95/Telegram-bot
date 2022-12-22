@@ -31,7 +31,8 @@ def find_hotels(chat_id, destination_id, check_in, check_out, resultsSize, num_p
         ],
         "resultsStartingIndex": 0,
         "resultsSize": resultsSize,
-        "sort": "PRICE_LOW_TO_HIGH",
+        "sort": "PRICE_HIGH_TO_LOW",
+        # "sort": "PRICE_LOW_TO_HIGH",
         "filters": {'availableFilter': 'SHOW_AVAILABLE_ONLY'}
     }
     headers = {
@@ -82,10 +83,10 @@ def find_hotels(chat_id, destination_id, check_in, check_out, resultsSize, num_p
                          hotel['address'] + '\nРасстояние до центра города, км: ' + \
                          hotel['distance_info'] + '\nСтоимость проживания: ' + hotel['total_price']
             bot.send_message(chat_id, hotel_info)
-            media = []
-            for url in hotel['photo']:
-                #bot.send_photo(chat_id, url)
-                photo = types.InputMediaPhoto(url)
-                media.append(photo)
-            bot.send_media_group(chat_id, media)
+            if num_photo:
+                media = []
+                for url in hotel['photo']:
+                    photo = types.InputMediaPhoto(url)
+                    media.append(photo)
+                bot.send_media_group(chat_id, media)
 
