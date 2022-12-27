@@ -1,7 +1,8 @@
 from telebot.types import Message, CallbackQuery
+import json
 from states.personal_information import UserInfoState
 from loader import bot
-from utils.find_destination_id import destination_id
+from utils.requests import api_request
 from utils.find_hotels import find_hotels
 from keyboards.inline.cities_buttons import city_markup
 from keyboards.inline.calendar import run_calendar
@@ -13,18 +14,35 @@ from datetime import date
 @bot.message_handler(commands=['lowprice'])
 def lowprice(message: Message):
     bot.set_state(message.from_user.id, UserInfoState.input_city, message.chat.id)
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['command'] = 'lowprice'
+    bot.reply_to(message, 'Введите город (поиск по городам России на данный момент временно не работает)')
+
+@bot.message_handler(commands=['highprice'])
+def lowprice(message: Message):
+    bot.set_state(message.from_user.id, UserInfoState.input_city, message.chat.id)
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['command'] = 'highprice'
     bot.reply_to(message, 'Введите город (поиск по городам России на данный момент временно не работает)')
 
 @bot.message_handler(state=UserInfoState.input_city)
 def find_city(message: Message) -> None:
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['input_city'] = message.text
-    possible_options = destination_id(data['input_city'])
-    if possible_options:
-        bot.set_state(message.from_user.id, UserInfoState.buttons_city, message.chat.id)
-        bot.reply_to(message, 'Уточните, пожалуйста:', reply_markup=city_markup(possible_options))
+    response = api_request('locations/v3/search', {'q': data['input_city'], 'locale': 'ru_RU'}, 'GET')
+    if response:
+        data_api = json.loads(response)
+        possible_options = {}
+        for elem in data_api["sr"]:
+            if elem['type'] == 'CITY' or elem['type'] == 'NEIGHBORHOOD':
+                possible_options[elem['gaiaId']] = elem['regionNames']['fullName']
+        if possible_options:
+            bot.set_state(message.from_user.id, UserInfoState.buttons_city, message.chat.id)
+            bot.reply_to(message, 'Уточните, пожалуйста:', reply_markup=city_markup(possible_options))
+        else:
+            bot.send_message(message.chat.id, 'По запросу ничего не нашлось, попробуйте ещё раз.')
     else:
-        bot.send_message(message.chat.id, 'По запросу ничего не нашлось, попробуйте ещё раз.')
+        bot.send_message(message.chat.id, 'Что-то пошло не так, попробуйте ещё раз.')
 
 @bot.message_handler(state=UserInfoState.buttons_city)
 def find_city(message: Message) -> None:
@@ -118,13 +136,7 @@ def callback_query(call) -> None:
             bot.set_state(call.from_user.id, UserInfoState.find_hotels, call.message.chat.id)
             bot.send_message(call.message.chat.id, 'Идёт поиск отелей...')
             find_hotels(call.message.chat.id, data['destination_id'], data['date_of_entry'],
-                        data['departure_date'], data['number_of_hotels'])
-            # for hotel in find_hotels(data['destination_id'], data['date_of_entry'],
-            #                          data['departure_date'], data['number_of_hotels']):
-                # hotel_info = 'Название: ' + hotel['name'] + '\nАдрес: ' + \
-                #              hotel['address'] + '\nРасстояние до центра города, км: ' + \
-                #              hotel['distance_info'] +'\nСтоимость проживания: ' + hotel['total_price']
-                # bot.send_message(call.message.chat.id, hotel_info)
+                        data['departure_date'], data['number_of_hotels'], data['command'])
 
 
 
@@ -138,7 +150,7 @@ def number_of_photo(message: Message) -> None:
             bot.set_state(message.from_user.id, UserInfoState.find_hotels, message.chat.id)
             bot.send_message(message.chat.id, 'Идёт поиск отелей...')
             find_hotels(message.chat.id, data['destination_id'], data['date_of_entry'],
-                        data['departure_date'], data['number_of_hotels'], num_photo)
+                        data['departure_date'], data['number_of_hotels'], data['command'], num_photo)
         else:
             bot.send_message(message.chat.id, 'Количество фотографий должно быть не более 10. Попробуйте ещё раз.')
     except ValueError:

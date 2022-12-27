@@ -1,15 +1,11 @@
 from loader import bot
-import requests
 import json
-from config_data import config
 from telebot import types
-import requests
+from utils.requests import api_request
 
 
-def find_hotels(chat_id, destination_id, check_in, check_out, resultsSize, num_photo=None):
+def find_hotels(chat_id, destination_id, check_in, check_out, resultsSize, command, num_photo=None) -> None:
 
-
-    url = "https://hotels4.p.rapidapi.com/properties/v2/list"
     payload = {
         "currency": "USD",
         "eapid": 1,
@@ -31,22 +27,20 @@ def find_hotels(chat_id, destination_id, check_in, check_out, resultsSize, num_p
         ],
         "resultsStartingIndex": 0,
         "resultsSize": resultsSize,
-        "sort": "PRICE_HIGH_TO_LOW",
-        # "sort": "PRICE_LOW_TO_HIGH",
+        "sort": "PRICE_LOW_TO_HIGH",
         "filters": {'availableFilter': 'SHOW_AVAILABLE_ONLY'}
     }
-    headers = {
-        "content-type": "application/json",
-        "X-RapidAPI-Key": "8508e118a7msh0417a18b41302b0p146d1bjsn9ea1996d58fe",
-        "X-RapidAPI-Host": "hotels4.p.rapidapi.com"
-    }
 
-    response = requests.request("POST", url, json=payload, headers=headers)
+    if command == 'lowprice':
+        payload['sort'] = "PRICE_LOW_TO_HIGH"
+    elif command == 'highprice':
+        payload['sort'] = "PRICE_HIGH_TO_LOW"
 
+    response = api_request('properties/v2/list', payload, 'POST')
+    bad_flag = False
     if response:
-        parsed = json.loads(response.text)
+        parsed = json.loads(response)
         hotels = []
-        url = "https://hotels4.p.rapidapi.com/properties/v2/detail"
         for elem in parsed['data']['propertySearch']['properties']:
             hotels.append(dict())
             hotels[-1]['id'] = elem['id']
@@ -67,17 +61,19 @@ def find_hotels(chat_id, destination_id, check_in, check_out, resultsSize, num_p
                 "propertyId": hotels[-1]['id']
             }
 
-            hotel_response = requests.request("POST", url, json=payload, headers=headers)
+            hotel_response = api_request('properties/v2/detail', payload, 'POST')
             if hotel_response:
-                parsed_hotel = json.loads(hotel_response.text)
+                parsed_hotel = json.loads(hotel_response)
                 hotels[-1]['address'] = parsed_hotel['data']['propertyInfo']['summary']['location']['address']['addressLine']
                 if num_photo:
                     hotels[-1]['photo'] = []
                     for photo_id in range(num_photo):
                         hotels[-1]['photo'].append(parsed_hotel['data']['propertyInfo']['propertyGallery']['images'][photo_id]['image']['url'])
-
-
-
+            else:
+                bad_flag = True
+    else:
+        bad_flag = True
+    if not bad_flag:
         for hotel in hotels:
             hotel_info = 'Название: ' + hotel['name'] + '\nАдрес: ' + \
                          hotel['address'] + '\nРасстояние до центра города, км: ' + \
@@ -89,4 +85,6 @@ def find_hotels(chat_id, destination_id, check_in, check_out, resultsSize, num_p
                     photo = types.InputMediaPhoto(url)
                     media.append(photo)
                 bot.send_media_group(chat_id, media)
+    else:
+        bot.send_message(chat_id, 'Что-то пошло не так, попробуйте ещё раз.')
 

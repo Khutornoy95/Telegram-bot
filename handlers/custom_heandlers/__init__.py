@@ -1,2 +1,2 @@
 from . import survey
-from . import lowprice
+from . import low_high_price

@@ -3,7 +3,8 @@ import json
 from config_data import config
 
 url = 'https://hotels4.p.rapidapi.com/locations/v3/search'
-headers = {'X-RapidAPI-Key': config.RAPID_API_KEY,
+headers = {"content-type": "application/json",
+           'X-RapidAPI-Key': config.RAPID_API_KEY,
            'X-RapidAPI-Host': 'hotels4.p.rapidapi.com'}
 
 def destination_id(city):
@@ -19,3 +20,5 @@ def destination_id(city):
 
     return possible_cities
 
+
+#api_request(locations/v3/search, {'q': data['input_city'], 'locale': 'ru_RU'}, 'GET')
