@@ -1,10 +1,11 @@
 import requests
 from config_data import config
+from typing import Any, Callable
 
-def api_request(method_endswith,  # Меняется в зависимости от запроса. locations/v3/search либо properties/v2/list
-                params,  # Параметры, если locations/v3/search, то {'q': 'Рига', 'locale': 'ru_RU'}
-                method_type  # Метод\тип запроса GET\POST
-                ):
+def api_request(method_endswith: str,
+                params: Any,
+                method_type: str
+                ) -> Callable:
     url = f"https://hotels4.p.rapidapi.com/{method_endswith}"
     headers = {"content-type": "application/json",
                'X-RapidAPI-Key': config.RAPID_API_KEY,
@@ -24,7 +25,7 @@ def api_request(method_endswith,  # Меняется в зависимости �
         )
 
 
-def get_request(url, params, headers):
+def get_request(url: str, params: Any, headers: dict) -> str:
     try:
         response = requests.request('GET', url, headers=headers, params=params, timeout=15)
         if response.status_code == requests.codes.ok:
@@ -32,7 +33,7 @@ def get_request(url, params, headers):
     except:
         pass
 
-def post_request(url, params, headers):
+def post_request(url: str, params: Any, headers: dict) -> str:
     try:
         response = requests.request("POST", url, json=params, headers=headers, timeout=15)
         if response.status_code == requests.codes.ok:

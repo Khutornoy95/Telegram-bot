@@ -13,3 +13,7 @@ class UserInfoState(StatesGroup):
     photo_hotels = State()
     number_of_photo = State()
     find_hotels = State()
+    min_price = State()
+    max_price = State()
+    min_dist = State()
+    max_dist = State()
